@@ -281,6 +281,10 @@ func (g *Geometry) ReadFaces(cb func(vA, vB, vC math32.Vector3) bool) {
 	if g.Indexed() {
 		var vA, vB, vC math32.Vector3
 		positions := vbo.Buffer()
+		if positions == nil {
+			return
+		}
+
 		for i := 0; i < g.indices.Size(); i += 3 {
 			// Get face vertices
 			positions.GetVector3(int(3*g.indices[i]), &vA)

@@ -24,6 +24,10 @@ func (a *ArrayF32) Bytes() int {
 	return len(*a) * int(unsafe.Sizeof(float32(0)))
 }
 
+func (a *ArrayF32) Data() interface{} {
+	return a.ToFloat32()
+}
+
 // Size returns the number of float32 elements in the array
 func (a *ArrayF32) Size() int {
 
@@ -226,6 +230,10 @@ func NewArrayU32(size, capacity int) ArrayU32 {
 func (a *ArrayU32) Bytes() int {
 
 	return len(*a) * int(unsafe.Sizeof(uint32(0)))
+}
+
+func (a *ArrayU32) Data() interface{} {
+	return a.ToUint32()
 }
 
 // Size returns the number of float32 elements in the array

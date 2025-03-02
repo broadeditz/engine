@@ -69,13 +69,23 @@ func (nh *Normals) Update() {
 	// Get the target positions and normals buffers
 	tPosVBO := nh.targetGeometry.VBO(gls.VertexPosition)
 	tPositions := tPosVBO.Buffer()
+	if tPositions != nil {
+		return
+	}
+
 	tNormVBO := nh.targetGeometry.VBO(gls.VertexNormal)
 	tNormals := tNormVBO.Buffer()
+	if tNormals != nil {
+		return
+	}
 
 	// Get this object positions buffer
 	geom := nh.GetGeometry()
 	posVBO := geom.VBO(gls.VertexPosition)
 	positions := posVBO.Buffer()
+	if positions != nil {
+		return
+	}
 
 	// For each target object vertex position:
 	for pos := 0; pos < tPositions.Size(); pos += 3 {

@@ -10,12 +10,12 @@ import (
 
 // VBO abstracts an OpenGL Vertex Buffer Object.
 type VBO struct {
-	gs      *GLS            // Reference to OpenGL state
-	handle  uint32          // OpenGL handle for this VBO
-	usage   uint32          // Expected usage pattern of the buffer
-	update  bool            // Update flag
-	buffer  math32.ArrayF32 // Data buffer
-	attribs []VBOattrib     // List of attributes
+	gs      *GLS        // Reference to OpenGL state
+	handle  uint32      // OpenGL handle for this VBO
+	usage   uint32      // Expected usage pattern of the buffer
+	update  bool        // Update flag
+	buffer  VBOBuffer   // Data buffer
+	attribs []VBOattrib // List of attributes
 }
 
 // VBOattrib describes one attribute of an OpenGL Vertex Buffer Object.
@@ -25,6 +25,13 @@ type VBOattrib struct {
 	ByteOffset  uint32     // Byte offset from the start of the VBO
 	NumElements int32      // Number of elements
 	ElementType uint32     // Type of the element (e.g. FLOAT, INT, UNSIGNED_SHORT, etc...)
+}
+
+// VBOBuffer is an interface used to facilitate alternative data types as VBO buffers.
+type VBOBuffer interface {
+	Bytes() int
+	Size() int
+	Data() interface{}
 }
 
 // AttribType is the functional type of a vbo attribute.
@@ -79,10 +86,17 @@ var elementTypeSizeMap = map[uint32]int{
 
 // NewVBO creates and returns a pointer to a new OpenGL Vertex Buffer Object.
 func NewVBO(buffer math32.ArrayF32) *VBO {
-
 	vbo := new(VBO)
 	vbo.init()
 	vbo.SetBuffer(buffer)
+	return vbo
+}
+
+// NewVBOFromBuffer creates and returns a pointer to a new OpenGL Vertex Buffer Object.
+func NewVBOFromBuffer(buffer VBOBuffer) *VBO {
+	vbo := new(VBO)
+	vbo.init()
+	vbo.SetVBOBuffer(buffer)
 	return vbo
 }
 
@@ -149,6 +163,19 @@ func (vbo *VBO) AddCustomAttribOffset(name string, itemSize int32, byteOffset ui
 	return vbo
 }
 
+// AddCustomAttribElement adds a new attribute to the VBO with the specified name, itemSize and elementType.
+func (vbo *VBO) AddCustomAttribElement(name string, itemSize int32, elementType uint32) *VBO {
+	vbo.attribs = append(vbo.attribs, VBOattrib{
+		Type:        Undefined,
+		Name:        name,
+		ByteOffset:  uint32(vbo.StrideSize()),
+		NumElements: itemSize,
+		ElementType: elementType,
+	})
+
+	return vbo
+}
+
 // Attrib finds and returns a pointer to the VBO attribute with the specified type.
 // Returns nil if not found.
 func (vbo *VBO) Attrib(atype AttribType) *VBOattrib {
@@ -205,6 +232,14 @@ func (vbo *VBO) Dispose() {
 // SetBuffer sets the VBO buffer.
 func (vbo *VBO) SetBuffer(buffer math32.ArrayF32) *VBO {
 
+	vbo.buffer = &buffer
+	vbo.update = true
+	return vbo
+}
+
+// SetBuffer sets the VBO buffer.
+func (vbo *VBO) SetVBOBuffer(buffer VBOBuffer) *VBO {
+
 	vbo.buffer = buffer
 	vbo.update = true
 	return vbo
@@ -220,7 +255,7 @@ func (vbo *VBO) SetUsage(usage uint32) {
 // Buffer returns a pointer to the VBO buffer.
 func (vbo *VBO) Buffer() *math32.ArrayF32 {
 
-	return &vbo.buffer
+	return vbo.buffer.(*math32.ArrayF32)
 }
 
 // Update sets the update flag to force the VBO update.
@@ -320,7 +355,7 @@ func (vbo *VBO) Transfer(gs *GLS) {
 
 	// Transfer the VBO data to OpenGL
 	gs.BindBuffer(ARRAY_BUFFER, vbo.handle)
-	gs.BufferData(ARRAY_BUFFER, vbo.buffer.Bytes(), vbo.buffer.ToFloat32(), vbo.usage)
+	gs.BufferData(ARRAY_BUFFER, vbo.buffer.Bytes(), vbo.buffer.Data(), vbo.usage)
 	vbo.update = false
 }
 
@@ -333,6 +368,9 @@ func (vbo *VBO) OperateOnVectors3(attribType AttribType, cb func(vec *math32.Vec
 	stride := vbo.Stride()
 	offset := vbo.AttribOffset(attribType)
 	buffer := vbo.Buffer()
+	if buffer == nil {
+		return
+	}
 
 	// Call callback for each vector3, updating the buffer afterward
 	var vec math32.Vector3
@@ -355,6 +393,9 @@ func (vbo *VBO) ReadVectors3(attribType AttribType, cb func(vec math32.Vector3) 
 	stride := vbo.Stride()
 	offset := vbo.AttribOffset(attribType)
 	positions := vbo.Buffer()
+	if positions == nil {
+		return
+	}
 
 	// Call callback for each vector3
 	var vec math32.Vector3
@@ -375,6 +416,9 @@ func (vbo *VBO) ReadTripleVectors3(attribType AttribType, cb func(vec1, vec2, ve
 	stride := vbo.Stride()
 	offset := vbo.AttribOffset(attribType)
 	positions := vbo.Buffer()
+	if positions == nil {
+		return
+	}
 
 	doubleStride := 2 * stride
 	loopStride := 3 * stride

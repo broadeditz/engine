@@ -181,6 +181,10 @@ func (rc *Raycaster) RaycastSprite(s *graphic.Sprite, intersects *[]Intersect) {
 	// Get vertex positions, transform to camera coordinates and
 	// checks intersection with ray
 	buffer := vboPos.Buffer()
+	if buffer == nil {
+		return
+	}
+
 	indices := geom.Indices()
 	var v1 math32.Vector3
 	var v2 math32.Vector3
@@ -405,6 +409,10 @@ func lineRaycast(igr graphic.IGraphic, rc *Raycaster, intersects *[]Intersect, s
 		return
 	}
 	positions := vboPos.Buffer()
+	if positions == nil {
+		return
+	}
+
 	indices := geom.Indices()
 	precisionSq := rc.LinePrecision * rc.LinePrecision
 
